@@ -145,8 +145,14 @@ export class EmojiIndex {
 
   buildIndex() {
     let allCategories = this._data.categories
+    let customIndex = -1
+    let recentIndex = -1
 
     if (this._include) {
+      // Getting the 'custom' category index
+      customIndex = this._include.indexOf('custom')
+      // Getting the 'recent' category index
+      recentIndex = this._include.indexOf('recent')
       // Remove categories that are not in the include list.
       allCategories = allCategories.filter((item) => {
         return this._include.includes(item.id)
@@ -185,17 +191,6 @@ export class EmojiIndex {
       }
     })
 
-    if (this.isCategoryNeeded('custom')) {
-      if (this._custom.length > 0) {
-        for (let customEmoji of this._custom) {
-          this.addCustomEmoji(customEmoji)
-        }
-      }
-      if (this._customCategory.emojis.length) {
-        this._categories.push(this._customCategory)
-      }
-    }
-
     if (this.isCategoryNeeded('recent')) {
       if (this._recent.length) {
         this._recent.map((id) => {
@@ -211,10 +206,35 @@ export class EmojiIndex {
           return
         })
       }
-      // Add recent category to the top
-      if (this._recentCategory.emojis.length) {
-        this._categories.unshift(this._recentCategory)
+    }
+
+    if (this.isCategoryNeeded('custom')) {
+      if (this._custom.length > 0) {
+        for (let customEmoji of this._custom) {
+          this.addCustomEmoji(customEmoji)
+        }
       }
+    }
+
+    // This allows us to order the 'recent' and 'custom' as we want
+    if (this.isCategoryNeeded('recent') && this.isCategoryNeeded('custom')) {
+      if (recentIndex < customIndex) {
+        // Push the recent category to it's index if defined
+        this.addCategory(this._recentCategory, recentIndex)
+        // Push the custom category to it's index if defined
+        this.addCategory(this._customCategory, customIndex)
+      } else {
+        // Push the custom category to it's index if defined
+        this.addCategory(this._customCategory, customIndex)
+        // Push the recent category to it's index if defined
+        this.addCategory(this._recentCategory, recentIndex)
+      }
+    } else if (this.isCategoryNeeded('recent')) {
+      // Push the recent category to it's index if defined
+      this.addCategory(this._recentCategory, recentIndex)
+    } else if (this.isCategoryNeeded('custom')) {
+      // Push the custom category to it's index if defined
+      this.addCategory(this._customCategory, customIndex)
     }
   }
 
@@ -423,6 +443,16 @@ export class EmojiIndex {
       })
     }
     return emoji
+  }
+
+  addCategory(category, index) {
+    if (category.emojis.length) {
+      if (index !== -1) {
+        this._categories.splice(index, 0, category)
+      } else {
+        this._categories.push(category)
+      }
+    }
   }
 
   /**
